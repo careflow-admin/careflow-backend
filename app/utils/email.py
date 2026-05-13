@@ -10,6 +10,7 @@ from app.config.settings import (
     SMTP_PASSWORD,
     SMTP_PORT,
     SMTP_TIMEOUT,
+    SMTP_USE_SSL,
     SMTP_USE_TLS,
     SMTP_USERNAME,
 )
@@ -39,9 +40,14 @@ def send_email(
         msg.add_alternative(html_body, subtype="html")
 
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT) as server:
+        if SMTP_USE_SSL:
+            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT)
+        else:
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT)
+
+        with server:
             server.ehlo()
-            if SMTP_USE_TLS:
+            if SMTP_USE_TLS and not SMTP_USE_SSL:
                 server.starttls()
                 server.ehlo()
             server.login(SMTP_USERNAME, SMTP_PASSWORD)

@@ -38,6 +38,7 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", SMTP_USERNAME or "")
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "CareFlow")
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes", "on")
+SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "false").lower() in ("1", "true", "yes", "on")
 SMTP_TIMEOUT = int(os.getenv("SMTP_TIMEOUT", "20"))
 
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me")
