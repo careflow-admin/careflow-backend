@@ -41,6 +41,11 @@ SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes",
 SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "false").lower() in ("1", "true", "yes", "on")
 SMTP_TIMEOUT = int(os.getenv("SMTP_TIMEOUT", "20"))
 
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "")
+RESEND_FROM_NAME = os.getenv("RESEND_FROM_NAME", "CareFlow")
+RESEND_TIMEOUT = int(os.getenv("RESEND_TIMEOUT", "20"))
+
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRES_MINUTES = int(os.getenv("JWT_EXPIRES_MINUTES", "60"))

@@ -1,9 +1,16 @@
+import json
 import logging
 import smtplib
+import urllib.error
+import urllib.request
 from email.message import EmailMessage
 from typing import Optional
 
 from app.config.settings import (
+    RESEND_API_KEY,
+    RESEND_FROM_EMAIL,
+    RESEND_FROM_NAME,
+    RESEND_TIMEOUT,
     SMTP_FROM_EMAIL,
     SMTP_FROM_NAME,
     SMTP_HOST,
@@ -21,6 +28,10 @@ logger = logging.getLogger(__name__)
 def send_email(
     to_email: str, subject: str, body: str, html_body: Optional[str] = None
 ) -> None:
+    if RESEND_API_KEY:
+        _send_email_resend(to_email, subject, body, html_body=html_body)
+        return
+
     missing = []
     if not SMTP_USERNAME:
         missing.append("SMTP_USERNAME")
@@ -111,3 +122,51 @@ def _format_from() -> str:
     if SMTP_FROM_NAME:
         return f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
     return SMTP_FROM_EMAIL
+
+
+def _send_email_resend(
+    to_email: str, subject: str, body: str, html_body: Optional[str] = None
+) -> None:
+    missing = []
+    if not RESEND_API_KEY:
+        missing.append("RESEND_API_KEY")
+    if not RESEND_FROM_EMAIL:
+        missing.append("RESEND_FROM_EMAIL")
+    if missing:
+        raise RuntimeError("Missing Resend settings: " + ", ".join(missing))
+
+    payload = {
+        "from": _format_resend_from(),
+        "to": [to_email],
+        "subject": subject,
+        "text": body,
+    }
+    if html_body:
+        payload["html"] = html_body
+
+    request = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=RESEND_TIMEOUT) as response:
+            response.read()
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        logger.error("Resend API error: %s", error_body)
+        raise
+    except urllib.error.URLError:
+        logger.exception("Error sending email via Resend to %s", to_email)
+        raise
+
+
+def _format_resend_from() -> str:
+    if RESEND_FROM_NAME:
+        return f"{RESEND_FROM_NAME} <{RESEND_FROM_EMAIL}>"
+    return RESEND_FROM_EMAIL
