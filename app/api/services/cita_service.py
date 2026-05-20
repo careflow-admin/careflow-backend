@@ -1,3 +1,4 @@
+import logging
 from typing import Any, List, Optional
 
 from fastapi import HTTPException, status
@@ -10,6 +11,9 @@ from app.api.repositories.medico_repository import MedicoRepository
 from app.api.repositories.usuario_repository import UsuarioRepository
 from app.api.schemas.cita import CitaCreate, CitaUpdate
 from app.api.services.base import remove_none, schema_to_dict
+from app.utils.email import send_cita_estado_email
+
+logger = logging.getLogger(__name__)
 
 
 class CitaService:
@@ -115,8 +119,49 @@ class CitaService:
         if "id_medico" in data:
             self._validar_medico(data["id_medico"])
 
-        return self._build_cita_data(self.citas.update(cita, data))
+        previous_estado = cita.estado
+        updated = self.citas.update(cita, data)
+        new_estado = data.get("estado")
+        if new_estado is not None and self._estado_value(new_estado) != self._estado_value(previous_estado):
+            self._notify_estado_cita(updated)
+
+        return self._build_cita_data(updated)
 
     def delete(self, id_cita: int) -> None:
         cita = self._get_cita(id_cita)
         self.citas.delete(cita)
+
+    def _notify_estado_cita(self, cita: Cita) -> None:
+        if cita.estado not in (EstadoCita.confirmada, EstadoCita.rechazada):
+            return
+
+        paciente = cita.paciente or self.usuarios.get_by_id(cita.id_paciente)
+        if not paciente or not paciente.correo:
+            return
+
+        medico = cita.medico or self.medicos.get_by_id(cita.id_medico)
+        medico_nombre = ""
+        especialidad = ""
+        if medico and medico.usuario:
+            medico_nombre = medico.usuario.nombre
+        if medico and medico.especialidad:
+            especialidad = medico.especialidad.nombre
+
+        try:
+            send_cita_estado_email(
+                to_email=paciente.correo,
+                paciente_nombre=paciente.nombre,
+                medico_nombre=medico_nombre or "Medico",
+                especialidad=especialidad,
+                fecha=cita.fecha,
+                hora=cita.hora,
+                estado=cita.estado,
+            )
+        except Exception:
+            logger.exception(
+                "Error sending status email for cita %s", cita.id_cita
+            )
+
+    @staticmethod
+    def _estado_value(estado: object) -> str:
+        return str(getattr(estado, "value", estado))
