@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from app.api.models.cita import Cita
     from app.api.models.horario import Horario
     from app.api.models.especialidad import Especialidad
+    from app.api.models.historial_clinico import HistorialClinico
 
 class Medico(Base):
     __tablename__ = "medicos"
@@ -30,6 +31,9 @@ class Medico(Base):
     citas: Mapped[list["Cita"]] = relationship("Cita", back_populates="medico")
     horarios: Mapped[list["Horario"]] = relationship(
         "Horario", back_populates="medico"
+    )
+    historiales: Mapped[list["HistorialClinico"]] = relationship(
+        "HistorialClinico", back_populates="medico"
     )
 
     

@@ -11,6 +11,7 @@ from app.database.session import Base
 if TYPE_CHECKING:
     from app.api.models.medico import Medico
     from app.api.models.cita import Cita
+    from app.api.models.historial_clinico import HistorialClinico
 
 class RolUsuario(str, enum.Enum):
     paciente = "paciente"
@@ -35,4 +36,9 @@ class Usuario(Base):
     )
     citas_paciente: Mapped[list["Cita"]] = relationship(
         "Cita", back_populates="paciente", foreign_keys="Cita.id_paciente"
+    )
+    historiales_paciente: Mapped[list["HistorialClinico"]] = relationship(
+        "HistorialClinico",
+        back_populates="paciente",
+        foreign_keys="HistorialClinico.id_paciente",
     )
